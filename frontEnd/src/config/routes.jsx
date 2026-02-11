@@ -24,7 +24,7 @@ function AppLayout() {
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <Navigate to="/login" replace />,
+    element: <div></div>,
   },
 
   {
