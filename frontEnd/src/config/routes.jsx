@@ -1,6 +1,5 @@
 // src/config/routes.js
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
-import ProtectedRoute from "../components/shared/protectedRoutes";
 import ToolBar from "../components/shared/toolBar";
 
 import LoginPage from "../pages/loginPage";
@@ -9,6 +8,7 @@ import SurveyCreator from "../pages/surveyCreator";
 import ExpertsPage from "../pages/expertsPage";
 import CommentsPage from "../pages/commentsPage";
 import NewsCreator from "../pages/newsCreator";
+import NewsFeed from "../pages/newsPage";
 import NewsPage from "../pages/newsPage";
 
 function AppLayout() {
@@ -23,49 +23,20 @@ function AppLayout() {
 export const router = createBrowserRouter([
   {
     path: "/",
-    element: <div></div>,
-  },
-
-  {
-    path: "/login",
-    element: <LoginPage />,
-  },
-  {
-    path: "/register",
-    element: <LoginPage mode="register" />,
-  },
-
-  {
-    element: (
-      <ProtectedRoute>
-        <AppLayout />
-      </ProtectedRoute>
-    ),
+    element: <AppLayout />,
     children: [
       {
-        path: "/comments/:id",
-        element: <CommentsPage />,
+        index: true,
+        element: <Navigate to="/fact-check" replace />,
       },
       {
-        path: "/surveys",
-        element: <SurveyPage />,
+        path: "fact-check",
+        element: <FactCheckPage />,
       },
       {
-        path: "/surveyCreator",
-        element: <SurveyCreator />,
+        path: "statistics",
+        element: <StatisticsPage />,
       },
-      {
-        path: "/expertsPage",
-        element: <ExpertsPage />,
-      },
-      {
-        path: "/news",
-        element: <NewsPage />,
-      },
-      {
-        path: "/newsCreator",
-        element: <NewsCreator></NewsCreator>
-      }
     ],
   },
 
