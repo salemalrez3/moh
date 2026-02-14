@@ -1,15 +1,8 @@
 // src/config/routes.js
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import ToolBar from "../components/shared/toolBar";
-
-import LoginPage from "../pages/loginPage";
-import SurveyPage from "../pages/surveyPage";
-import SurveyCreator from "../pages/surveyCreator";
-import ExpertsPage from "../pages/expertsPage";
-import CommentsPage from "../pages/commentsPage";
-import NewsCreator from "../pages/newsCreator";
-import NewsFeed from "../pages/newsPage";
-import NewsPage from "../pages/newsPage";
+import FactCheckPage from "../pages/factCheckPage";
+import StatisticsPage from "../pages/statisticsPage";
 
 function AppLayout() {
   return (
