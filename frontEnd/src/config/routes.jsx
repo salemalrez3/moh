@@ -9,7 +9,6 @@ import SurveyCreator from "../pages/surveyCreator";
 import ExpertsPage from "../pages/expertsPage";
 import CommentsPage from "../pages/commentsPage";
 import NewsCreator from "../pages/newsCreator";
-import NewsFeed from "../pages/newsPage";
 import NewsPage from "../pages/newsPage";
 
 function AppLayout() {
