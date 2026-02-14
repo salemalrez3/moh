@@ -6,15 +6,21 @@ import {
   Typography,
   useMediaQuery,
   Stack,
+  IconButton,
+  Tooltip,
+  BottomNavigation,
+  BottomNavigationAction,
+  Paper,
 } from "@mui/material";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
-import { DarkMode, LightMode } from "@mui/icons-material";
+import { DarkMode, LightMode, VerifiedUser, Language, FactCheck, BarChart } from "@mui/icons-material";
 import { ThemeModeContext } from "../../config/themeConfig";
 export default function ToolBar({  }) {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const theme = useTheme();
   const isSm = useMediaQuery(theme.breakpoints.down("sm"));
@@ -32,12 +38,8 @@ const { mode, toggleColorMode } = useContext(ThemeModeContext);
 
   const tabs = useMemo(
     () => [
-      { label: t("surveys"), path: "/surveys" },
-      { label: t("funFact"), path: "/fun-fact" },
-      { label: t("news"), path: "/news" },
-      { label: t("surveyCreator"), path: "/surveyCreator" },
-      { label: t("newsCreator"), path: "/newsCreator" },
-      { label: t("expertPage"), path: "/expertsPage" },
+      { label: t("factChecker"), path: "/fact-check", icon: <FactCheck /> },
+      { label: t("statistics"), path: "/statistics", icon: <BarChart /> },
     ],
     [t]
   );
@@ -55,22 +57,35 @@ const { mode, toggleColorMode } = useContext(ThemeModeContext);
         zIndex: 1400,
         bgcolor: darkGreen,
         color: textOnDark,
-        boxShadow: "0 3px 14px rgba(0,0,0,0.18)",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
         px: { xs: 2, sm: 4 },
-        py: { xs: 1, sm: 1.25 },
-        borderBottomLeftRadius: 12,
-        borderBottomRightRadius: 12,
+        py: { xs: 1.5, sm: 1.5 },
       }}
     >
       <Box display="flex" alignItems="center" justifyContent="space-between">
         {/* Left: Brand */}
-        <Typography
-          variant={isSm ? "subtitle1" : "h6"}
-          sx={{ fontWeight: 700, color: gold, letterSpacing: 0.4 }}
-          aria-label="app-name"
-        >
-          {t("damascusVision")}
-        </Typography>
+        <Box display="flex" alignItems="center" gap={1.5}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: 1.5,
+              bgcolor: "rgba(255,255,255,0.15)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <VerifiedUser sx={{ fontSize: 22, color: gold }} />
+          </Box>
+          <Typography
+            variant={isSm ? "subtitle1" : "h6"}
+            sx={{ fontWeight: 700, color: "white", letterSpacing: 0.3 }}
+            aria-label="app-name"
+          >
+            {t("appName")}
+          </Typography>
+        </Box>
 
         {/* Center: Tabs */}
         {!isSm ? (
@@ -106,55 +121,79 @@ const { mode, toggleColorMode } = useContext(ThemeModeContext);
         )}
 
         {/* Right: Controls (Lang + Theme toggle) */}
-        <Stack direction="row" spacing={1.5} alignItems="center">
+        <Stack direction="row" spacing={1} alignItems="center">
           {/* Language Button */}
-          <Button
-            onClick={toggleLang}
-            variant="contained"
-            size="small"
-            sx={{
-              backgroundColor: gold,
-              color: darkGreen,
-              fontWeight: 700,
-              textTransform: "none",
-              borderRadius: 2,
-              px: 2,
-              boxShadow: "none",
-              "&:hover": { backgroundColor: "#e2b22e" },
-            }}
-            aria-label="toggle-language"
-          >
-            {i18n.language === "en" ? t("arabic") : t("english")}
-          </Button>
+          <Tooltip title={i18n.language === "en" ? "العربية" : "English"}>
+            <IconButton
+              onClick={toggleLang}
+              sx={{
+                color: "white",
+                bgcolor: "rgba(255,255,255,0.1)",
+                "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+              }}
+              aria-label="toggle-language"
+            >
+              <Language />
+            </IconButton>
+          </Tooltip>
 
           {/* Dark/Light Mode Button */}
-          <Button
-            onClick={toggleColorMode}
-            variant="outlined"
-            size="small"
-            sx={{
-              color: gold,
-              borderColor: gold,
-              borderRadius: 2,
-              px: 2,
-              "&:hover": { borderColor: gold, bgcolor: "rgba(212,175,55,0.15)" },
-            }}
-            aria-label="toggle-theme"
-          >
-            {theme.palette.mode === "light" ? (
-              <>
-                <DarkMode sx={{ fontSize: 18, mr: 0.5 }} />
-                {t("dark")}
-              </>
-            ) : (
-              <>
-                <LightMode sx={{ fontSize: 18, mr: 0.5 }} />
-                {t("light")}
-              </>
-            )}
-          </Button>
+          <Tooltip title={theme.palette.mode === "light" ? t("dark") : t("light")}>
+            <IconButton
+              onClick={toggleColorMode}
+              sx={{
+                color: "white",
+                bgcolor: "rgba(255,255,255,0.1)",
+                "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+              }}
+              aria-label="toggle-theme"
+            >
+              {theme.palette.mode === "light" ? <DarkMode /> : <LightMode />}
+            </IconButton>
+          </Tooltip>
         </Stack>
       </Box>
+
+      {/* Mobile Bottom Navigation */}
+      {isSm && (
+        <Paper
+          sx={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1300,
+            borderTop: "1px solid",
+            borderColor: "divider",
+          }}
+          elevation={8}
+        >
+          <BottomNavigation
+            value={value}
+            onChange={(event, newValue) => {
+              navigate(tabs[newValue].path);
+            }}
+            showLabels
+            sx={{
+              bgcolor: "background.paper",
+              "& .MuiBottomNavigationAction-root": {
+                color: "text.secondary",
+                "&.Mui-selected": {
+                  color: "primary.main",
+                },
+              },
+            }}
+          >
+            {tabs.map((tab, index) => (
+              <BottomNavigationAction
+                key={index}
+                label={tab.label}
+                icon={tab.icon}
+              />
+            ))}
+          </BottomNavigation>
+        </Paper>
+      )}
     </Box>
   );
 }
