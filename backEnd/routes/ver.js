@@ -126,15 +126,15 @@ router.get('/top', authMiddleware, async (req, res) => {
       take
     });
 
-    // For each source, fetch one example stance (any)
+    // For each source, fetch one example title and stance
     const enriched = await Promise.all(
       grouped.map(async (g) => {
         const example = await prisma.source.findFirst({
-          where: { title: g.title, url: g.url },
-          select: { stance: true }
+          where: { url: g.url },
+          select: { title: true, stance: true }
         });
         return {
-          title: g.title,
+          title: example?.title || g.url,
           url: g.url,
           mentions: g._count.title,
           avgSimilarity: g._avg.similarityScore,
@@ -163,6 +163,12 @@ router.get('/trends', authMiddleware, async (req, res) => {
     const userId = req.userId;
     const { groupBy = 'day', from, to } = req.query;
 
+    // Validate groupBy parameter
+    const validGroupBy = ['day', 'week', 'month'];
+    if (!validGroupBy.includes(groupBy)) {
+      return res.status(400).json({ error: 'groupBy must be day, week, or month' });
+    }
+
     // Build date filter
     const where = { userId };
     if (from || to) {
@@ -189,10 +195,8 @@ router.get('/trends', authMiddleware, async (req, res) => {
         const year = date.getFullYear();
         const week = getWeekNumber(date);
         key = `${year}-W${week}`;
-      } else if (groupBy === 'month') {
-        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       } else {
-        return res.status(400).json({ error: 'groupBy must be day, week, or month' });
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       }
 
       if (!grouped[key]) {

@@ -16,7 +16,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
-import { DarkMode, LightMode, VerifiedUser, Language, FactCheck, BarChart, Logout } from "@mui/icons-material";
+import { DarkMode, LightMode, VerifiedUser, Language, FactCheck, BarChart, Logout, History } from "@mui/icons-material";
 import { ThemeModeContext } from "../../config/themeConfig";
 export default function ToolBar({  }) {
   const { pathname } = useLocation();
@@ -40,6 +40,7 @@ const { mode, toggleColorMode } = useContext(ThemeModeContext);
     () => [
       { label: t("factChecker"), path: "/fact-check", icon: <FactCheck /> },
       { label: t("statistics"), path: "/statistics", icon: <BarChart /> },
+      { label: t("history"), path: "/history", icon: <History /> },
     ],
     [t]
   );

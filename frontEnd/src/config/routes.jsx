@@ -4,6 +4,7 @@ import ToolBar from "../components/shared/toolBar";
 import ProtectedRoute from "../components/shared/protectedRoutes";
 import FactCheckPage from "../pages/factCheckPage";
 import StatisticsPage from "../pages/statisticsPage";
+import HistoryPage from "../pages/historyPage";
 import LoginPage from "../pages/loginPage";
 import RegisterPage from "../pages/registerPage";
 
@@ -44,6 +45,10 @@ export const router = createBrowserRouter([
       {
         path: "statistics",
         element: <StatisticsPage />,
+      },
+      {
+        path: "history",
+        element: <HistoryPage />,
       },
     ],
   },
