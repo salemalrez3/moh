@@ -32,9 +32,9 @@ router.get('/',authMiddleware, async (req, res) => {
     const recentChecks = await prisma.claimCheck.findMany({
       take: 10,
       orderBy: { createdAt: 'desc' },
-      where: { userId },
+      where: { userId: req.userId },
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { userName: true, email: true } },
         _count: { select: { sources: true } }
       }
     });
@@ -64,7 +64,7 @@ router.get('/',authMiddleware, async (req, res) => {
         claim: c.claimText,
         verdict: c.verdict,
         confidence: c.confidence,
-        userName: c.user.name || c.user.email,
+        userName: c.user.userName || c.user.email,
         sourceCount: c._count.sources,
         createdAt: c.createdAt
       }))

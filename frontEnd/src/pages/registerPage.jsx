@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
-import { useLogin } from "../repository/user";
+import { useRegister } from "../repository/user";
 import {
   Box,
   Card,
@@ -17,14 +17,15 @@ import {
   Stack,
   Link,
 } from "@mui/material";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -32,33 +33,41 @@ export default function LoginPage() {
   const [serverError, setServerError] = useState(null);
   const [serverSuccess, setServerSuccess] = useState(null);
 
-  const loginMutation = useLogin();
+  const registerMutation = useRegister();
 
-  const onLogin = async (e) => {
+  const onRegister = async (e) => {
     e.preventDefault();
     setServerError(null);
     setServerSuccess(null);
 
-    if (!email || !password) {
+    if (!email || !password || !name) {
       setServerError(t("pleaseFillAllFields") || "Please fill all fields");
       return;
     }
 
     try {
-      await loginMutation.mutateAsync({ email, password });
-      setServerSuccess(t("loginSuccess") || "Logged in");
-      navigate("/fact-check", { replace: true });
+      const res = await registerMutation.mutateAsync({ email, password, name });
+
+      if (res?.token) {
+        setServerSuccess(
+          t("registeredAndLogged") || "Registered and logged in"
+        );
+        navigate("/fact-check", { replace: true });
+      } else {
+        setServerSuccess(t("registered") || "Registered successfully");
+        navigate("/login", { replace: true });
+      }
     } catch (err) {
       const msg =
         err?.response?.data?.error ||
         err?.response?.data?.message ||
         err?.message ||
-        "Login failed";
+        "Registration failed";
       setServerError(msg);
     }
   };
 
-  const isLoading = loginMutation.isPending;
+  const isLoading = registerMutation.isPending;
 
   return (
     <Box
@@ -83,7 +92,7 @@ export default function LoginPage() {
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
             <Avatar sx={{ bgcolor: "primary.main", width: 64, height: 64 }}>
-              <LockOutlinedIcon sx={{ fontSize: 32 }} />
+              <PersonAddAltIcon sx={{ fontSize: 32 }} />
             </Avatar>
           </Box>
 
@@ -92,7 +101,7 @@ export default function LoginPage() {
             align="center"
             sx={{ fontWeight: 700, mb: 1, color: "text.primary" }}
           >
-            {t("welcome") || "Welcome"}
+            {t("register") || "Register"}
           </Typography>
 
           <Typography
@@ -101,16 +110,23 @@ export default function LoginPage() {
             color="text.secondary"
             sx={{ mb: 3 }}
           >
-            {t("authSubtitle") ||
-              "Sign in to your account to get started."}
+            {t("registerSubtitle") || "Create your account to get started."}
           </Typography>
 
-          <Box component="form" onSubmit={onLogin} sx={{ mt: 2 }}>
+          <Box component="form" onSubmit={onRegister} sx={{ mt: 2 }}>
             <Stack spacing={2}>
               {serverError && <Alert severity="error">{serverError}</Alert>}
               {serverSuccess && (
                 <Alert severity="success">{serverSuccess}</Alert>
               )}
+
+              <TextField
+                label={t("username") || "Name"}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                fullWidth
+                required
+              />
 
               <TextField
                 label={t("email") || "Email"}
@@ -154,13 +170,13 @@ export default function LoginPage() {
                   isLoading ? <CircularProgress size={18} /> : null
                 }
               >
-                {t("login") || "Login"}
+                {t("register") || "Register"}
               </Button>
 
               <Typography variant="body2" align="center" sx={{ mt: 1 }}>
-                {t("dontHaveAccount") || "Don't have an account?"}{" "}
-                <Link component={RouterLink} to="/register" underline="hover">
-                  {t("register") || "Register"}
+                {t("alreadyHaveAccount") || "Already have an account?"}{" "}
+                <Link component={RouterLink} to="/login" underline="hover">
+                  {t("login") || "Login"}
                 </Link>
               </Typography>
             </Stack>

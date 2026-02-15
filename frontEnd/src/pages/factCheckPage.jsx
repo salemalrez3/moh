@@ -35,7 +35,7 @@ import {
   Psychology,
 } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
-import { useVerifyClaim, useHealth } from "../repository/factCheck";
+import { useVerifyClaim } from "../repository/factCheck";
 
 const verdictConfig = {
   true: {
@@ -370,7 +370,6 @@ export default function FactCheckPage() {
   const [result, setResult] = useState(null);
 
   const { mutate: verifyClaim, isPending, isError, error, reset } = useVerifyClaim();
-  const { data: health } = useHealth();
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -438,18 +437,6 @@ export default function FactCheckPage() {
             >
               {t("factCheckerSubtitle")}
             </Typography>
-            {health && (
-              <Chip
-                icon={<Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: health.status === "healthy" ? "#4caf50" : "#ff9800", ml: 1 }} />}
-                label={`API ${health.status === "healthy" ? "Online" : "Offline"}`}
-                sx={{
-                  mt: { xs: 2, sm: 3 },
-                  bgcolor: "rgba(255,255,255,0.15)",
-                  color: "white",
-                  fontWeight: 500,
-                }}
-              />
-            )}
           </Box>
         </Container>
       </Box>

@@ -16,7 +16,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useContext, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
-import { DarkMode, LightMode, VerifiedUser, Language, FactCheck, BarChart } from "@mui/icons-material";
+import { DarkMode, LightMode, VerifiedUser, Language, FactCheck, BarChart, Logout } from "@mui/icons-material";
 import { ThemeModeContext } from "../../config/themeConfig";
 export default function ToolBar({  }) {
   const { pathname } = useLocation();
@@ -149,6 +149,24 @@ const { mode, toggleColorMode } = useContext(ThemeModeContext);
               aria-label="toggle-theme"
             >
               {theme.palette.mode === "light" ? <DarkMode /> : <LightMode />}
+            </IconButton>
+          </Tooltip>
+
+          {/* Logout Button */}
+          <Tooltip title={t("logout") || "Logout"}>
+            <IconButton
+              onClick={() => {
+                localStorage.removeItem("token");
+                navigate("/login");
+              }}
+              sx={{
+                color: "white",
+                bgcolor: "rgba(255,255,255,0.1)",
+                "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+              }}
+              aria-label="logout"
+            >
+              <Logout />
             </IconButton>
           </Tooltip>
         </Stack>

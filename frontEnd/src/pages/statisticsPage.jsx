@@ -37,7 +37,7 @@ import {
   Timeline,
 } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
-import { useStatistics, useRecentChecks, useHealth } from "../repository/factCheck";
+import { useStatistics, useRecentChecks } from "../repository/factCheck";
 
 function StatCard({ title, value, icon, color, subtitle, delay = 0 }) {
   const theme = useTheme();
@@ -108,35 +108,23 @@ function StatCard({ title, value, icon, color, subtitle, delay = 0 }) {
   );
 }
 
-function VerdictDistribution({ stats }) {
+function VerdictDistribution({ distribution }) {
   const { t } = useTranslation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const total = stats.totalChecks || 1;
+  const byVerdict = distribution?.byVerdict || [];
+  const total = byVerdict.reduce((sum, v) => sum + v.count, 0) || 1;
 
-  const items = [
-    {
-      label: t("trueClaims"),
-      value: stats.trueCount || 0,
-      color: "success",
-      icon: <CheckCircle fontSize="small" />,
-      gradient: "linear-gradient(90deg, #43a047 0%, #66bb6a 100%)",
-    },
-    {
-      label: t("falseClaims"),
-      value: stats.falseCount || 0,
-      color: "error",
-      icon: <Cancel fontSize="small" />,
-      gradient: "linear-gradient(90deg, #e53935 0%, #ef5350 100%)",
-    },
-    {
-      label: t("mixedClaims"),
-      value: stats.mixedCount || 0,
-      color: "warning",
-      icon: <HelpOutline fontSize="small" />,
-      gradient: "linear-gradient(90deg, #fb8c00 0%, #ffa726 100%)",
-    },
-  ];
+  const verdictStyles = {
+    true: { label: t("trueClaims"), color: "success", icon: <CheckCircle fontSize="small" />, gradient: "linear-gradient(90deg, #43a047 0%, #66bb6a 100%)" },
+    false: { label: t("falseClaims"), color: "error", icon: <Cancel fontSize="small" />, gradient: "linear-gradient(90deg, #e53935 0%, #ef5350 100%)" },
+    mixed: { label: t("mixedClaims"), color: "warning", icon: <HelpOutline fontSize="small" />, gradient: "linear-gradient(90deg, #fb8c00 0%, #ffa726 100%)" },
+  };
+
+  const items = byVerdict.map((v) => {
+    const style = verdictStyles[v.verdict?.toLowerCase()] || verdictStyles.mixed;
+    return { ...style, value: v.count };
+  });
 
   return (
     <Card
@@ -273,7 +261,7 @@ function RecentChecksTable({ checks }) {
                     </Avatar>
                     {getVerdictChip(check.verdict)}
                     <Typography variant="caption" color="text.secondary" sx={{ ml: "auto" }}>
-                      {new Date(check.checkedAt).toLocaleDateString()}
+                      {new Date(check.createdAt).toLocaleDateString()}
                     </Typography>
                   </Box>
                   <Typography
@@ -371,7 +359,7 @@ function RecentChecksTable({ checks }) {
                   <TableCell>{getVerdictChip(check.verdict)}</TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
-                      {new Date(check.checkedAt).toLocaleDateString()}
+                      {new Date(check.createdAt).toLocaleDateString()}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -443,7 +431,7 @@ function TopTopics({ topics }) {
           {topics.map((topic, index) => (
             <Grow in timeout={400 + index * 100} key={index}>
               <Chip
-                label={`${topic.name} (${topic.count})`}
+                label={`${topic.stance || topic.name} (${topic.count})`}
                 size={isMobile ? "small" : "medium"}
                 sx={{
                   fontWeight: 500,
@@ -466,8 +454,7 @@ export default function StatisticsPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { data: stats, isLoading: statsLoading, isError: statsError } = useStatistics();
-  const { data: recentChecks, isLoading: recentLoading } = useRecentChecks(10);
-  const { data: health } = useHealth();
+  const { data: recentChecks, isLoading: recentLoading } = useRecentChecks();
 
   if (statsLoading) {
     return (
@@ -525,29 +512,7 @@ export default function StatisticsPage() {
                 {t("statisticsSubtitle")}
               </Typography>
             </Box>
-            {health && (
-              <Chip
-                icon={
-                  <Box
-                    sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      bgcolor: health.status === "healthy" ? "#4caf50" : "#ff9800",
-                      ml: 1,
-                    }}
-                  />
-                }
-                label={`API ${health.status === "healthy" ? "Online" : "Offline"}`}
-                size={isMobile ? "small" : "medium"}
-                sx={{
-                  bgcolor: "rgba(255,255,255,0.15)",
-                  color: "white",
-                  fontWeight: 500,
-                  fontSize: { xs: 11, sm: 13 },
-                }}
-              />
-            )}
+
           </Box>
         </Container>
       </Box>
@@ -564,31 +529,31 @@ export default function StatisticsPage() {
         >
           <StatCard
             title={t("totalChecks")}
-            value={stats?.totalChecks}
+            value={stats?.mainStats?.totalChecks}
             icon={<Assessment />}
             color="primary"
             subtitle={t("allTimeTotal")}
             delay={0}
           />
           <StatCard
-            title={t("trueClaims")}
-            value={stats?.trueCount}
+            title={t("totalUsers")}
+            value={stats?.mainStats?.totalUsers}
             icon={<CheckCircle />}
             color="success"
             subtitle={t("verifiedTrue")}
             delay={100}
           />
           <StatCard
-            title={t("falseClaims")}
-            value={stats?.falseCount}
+            title={t("confidence")}
+            value={stats?.mainStats?.averageConfidence != null ? `${Math.round(stats.mainStats.averageConfidence * 100)}%` : "N/A"}
             icon={<Cancel />}
             color="error"
-            subtitle={t("verifiedFalse")}
+            subtitle={t("averageConfidence") || "Average confidence"}
             delay={200}
           />
           <StatCard
-            title={t("mixedClaims")}
-            value={stats?.mixedCount}
+            title={t("mostCommonVerdict") || "Most Common"}
+            value={stats?.mainStats?.mostCommonVerdict || "N/A"}
             icon={<HelpOutline />}
             color="warning"
             subtitle={t("partiallyTrue")}
@@ -605,8 +570,8 @@ export default function StatisticsPage() {
             mb: { xs: 2, md: 4 },
           }}
         >
-          <VerdictDistribution stats={stats || {}} />
-          <TopTopics topics={stats?.topTopics} />
+          <VerdictDistribution distribution={stats?.distribution} />
+          <TopTopics topics={stats?.distribution?.bySourceStance} />
         </Box>
 
         {/* Recent Checks */}
@@ -615,7 +580,7 @@ export default function StatisticsPage() {
             <CircularProgress />
           </Box>
         ) : (
-          <RecentChecksTable checks={recentChecks?.checks || recentChecks} />
+          <RecentChecksTable checks={recentChecks} />
         )}
 
         {/* Footer Note */}

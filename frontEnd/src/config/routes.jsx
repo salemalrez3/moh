@@ -1,8 +1,11 @@
 // src/config/routes.js
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 import ToolBar from "../components/shared/toolBar";
+import ProtectedRoute from "../components/shared/protectedRoutes";
 import FactCheckPage from "../pages/factCheckPage";
 import StatisticsPage from "../pages/statisticsPage";
+import LoginPage from "../pages/loginPage";
+import RegisterPage from "../pages/registerPage";
 
 function AppLayout() {
   return (
@@ -15,8 +18,20 @@ function AppLayout() {
 
 export const router = createBrowserRouter([
   {
+    path: "/login",
+    element: <LoginPage />,
+  },
+  {
+    path: "/register",
+    element: <RegisterPage />,
+  },
+  {
     path: "/",
-    element: <AppLayout />,
+    element: (
+      <ProtectedRoute>
+        <AppLayout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         index: true,
