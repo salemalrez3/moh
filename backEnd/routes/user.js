@@ -1,71 +1,60 @@
-// routes/user.js
-const express = require("express");
-const prisma = require("../db");            // your Prisma client
+const express = require('express');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const { PrismaClient } = require('@prisma/client');
+
+const prisma = new PrismaClient();
 const router = express.Router();
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");          // you installed 'bcrypt'
 
 // Register
-router.post("/register", async (req, res) => {
+router.post('/register', async (req, res) => {
   try {
-    console.log('[REGISTER] body =', req.body);
-    const { email, userName, passWord, role } = req.body;
-
-    if (!email || !userName || !passWord) {
-      return res.status(400).json({ error: "Missing fields (email, userName, passWord required)" });
+    const { email, password, name } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
     }
 
-    const hashedpassWord = await bcrypt.hash(passWord, 10);
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(409).json({ error: 'User already exists' });
+    }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
-      data: {
-        email,
-        userName,
-        passWord: hashedpassWord,
-        role,
-      },
+      data: { email, password: hashedPassword, name },
     });
 
-    // do not expose passWord hash
-    res.status(201).json({ id: user.id, email: user.email, userName: user.userName });
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name } });
   } catch (error) {
-    console.error("Register error:", error && error.stack ? error.stack : error);
-    res.status(500).json({ error: "Internal Server Error", details: String(error.message || error) });
+    console.error(error);
+    res.status(500).json({ error: 'Registration failed' });
   }
 });
 
 // Login
-router.post("/login", async (req, res) => {
+router.post('/login', async (req, res) => {
   try {
-    console.log('[LOGIN] body =', req.body);
-    const { email, passWord } = req.body;
-
-    if (!email || !passWord) {
-      return res.status(400).json({ error: "email and passWord are required" });
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password required' });
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
-    console.log('[LOGIN] db user =', user ? { id: user.id, email: user.email, userName: user.userName } : null);
-
-    if (!user) return res.status(401).json({ error: "Invalid credentials" });
-
-    if (!user.passWord) {
-      console.error('[LOGIN] user.passWord is missing in DB record');
-      return res.status(500).json({ error: 'Server user record malformed (passWord missing)' });
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const valid = await bcrypt.compare(passWord, user.passWord);
-    if (!valid) return res.status(401).json({ error: "Invalid credentials" });
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
 
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || "supersecret", { expiresIn: "1d" });
-
-    res.json({
-      token,
-      user: { id: user.id, email: user.email, userName: user.userName },
-    });
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
   } catch (error) {
-    console.error("Login error:", error && error.stack ? error.stack : error);
-    res.status(500).json({ error: "Internal Server Error", details: String(error.message || error) });
+    console.error(error);
+    res.status(500).json({ error: 'Login failed' });
   }
 });
 
