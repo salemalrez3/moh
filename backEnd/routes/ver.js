@@ -56,5 +56,161 @@ router.post('/', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Verification failed' });
   }
 });
+router.get('/history', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    let { page = 1, limit = 10, verdict, from, to, search } = req.query;
+    page = parseInt(page);
+    limit = parseInt(limit);
+    const skip = (page - 1) * limit;
 
+    // Build filter
+    const where = { userId };
+    if (verdict) where.verdict = verdict;
+    if (from || to) {
+      where.createdAt = {};
+      if (from) where.createdAt.gte = new Date(from);
+      if (to) where.createdAt.lte = new Date(to);
+    }
+    if (search) {
+      where.claimText = { contains: search }; // case-insensitive if using SQLite (default)
+    }
+
+    // Get total count and paginated checks
+    const [total, checks] = await Promise.all([
+      prisma.claimCheck.count({ where }),
+      prisma.claimCheck.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          _count: { select: { sources: true } }
+        }
+      })
+    ]);
+
+    res.json({
+      page,
+      limit,
+      total,
+      checks: checks.map(c => ({
+        id: c.id,
+        claim: c.claimText,
+        verdict: c.verdict,
+        confidence: c.confidence,
+        sourceCount: c._count.sources,
+        createdAt: c.createdAt
+      }))
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
+
+
+// GET /sources/top
+router.get('/top', authMiddleware, async (req, res) => {
+  try {
+    const { limit = 20 } = req.query;
+    const take = parseInt(limit);
+
+    // Group sources by title and url, counting appearances
+    const grouped = await prisma.source.groupBy({
+      by: ['url'],
+      _count: { title: true },
+      _avg: { similarityScore: true },
+      orderBy: { _count: { title: 'desc' } },
+      take
+    });
+
+    // For each source, fetch one example stance (any)
+    const enriched = await Promise.all(
+      grouped.map(async (g) => {
+        const example = await prisma.source.findFirst({
+          where: { title: g.title, url: g.url },
+          select: { stance: true }
+        });
+        return {
+          title: g.title,
+          url: g.url,
+          mentions: g._count.title,
+          avgSimilarity: g._avg.similarityScore,
+          exampleStance: example?.stance || 'unknown'
+        };
+      })
+    );
+
+    res.json(enriched);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch top sources' });
+  }
+});
+function getWeekNumber(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+
+// GET /stats/trends (protected)
+router.get('/trends', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { groupBy = 'day', from, to } = req.query;
+
+    // Build date filter
+    const where = { userId };
+    if (from || to) {
+      where.createdAt = {};
+      if (from) where.createdAt.gte = new Date(from);
+      if (to) where.createdAt.lte = new Date(to);
+    }
+
+    // Fetch all checks in the period (we'll group them in JS)
+    const checks = await prisma.claimCheck.findMany({
+      where,
+      select: { createdAt: true, verdict: true },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    // Group by the specified period
+    const grouped = {};
+    checks.forEach(c => {
+      const date = new Date(c.createdAt);
+      let key;
+      if (groupBy === 'day') {
+        key = date.toISOString().split('T')[0]; // YYYY-MM-DD
+      } else if (groupBy === 'week') {
+        const year = date.getFullYear();
+        const week = getWeekNumber(date);
+        key = `${year}-W${week}`;
+      } else if (groupBy === 'month') {
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      } else {
+        return res.status(400).json({ error: 'groupBy must be day, week, or month' });
+      }
+
+      if (!grouped[key]) {
+        grouped[key] = { total: 0, verdicts: {} };
+      }
+      grouped[key].total++;
+      grouped[key].verdicts[c.verdict] = (grouped[key].verdicts[c.verdict] || 0) + 1;
+    });
+
+    // Convert to array sorted by period
+    const trendData = Object.entries(grouped)
+      .map(([period, data]) => ({ period, ...data }))
+      .sort((a, b) => a.period.localeCompare(b.period));
+
+    res.json(trendData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch trends' });
+  }
+});
 module.exports = router;
