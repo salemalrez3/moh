@@ -63,6 +63,8 @@ The frontend requires the **backend** and the **AI service** to be running:
    ```bash
    cd ai-service
    pip install -r requirements.txt
+   pip install pydantic-settings
+   pip install ddgs
    uvicorn app.main:app --port 8001
    ```
 
