@@ -103,27 +103,68 @@ The frontend requires the **backend** and the **AI service** to be running:
 
 ```
 frontEnd/
-├── public/                  # Static assets
+├── public/                    # Static assets
 ├── src/
+│   ├── App.jsx                # Root component (RTL, theme, routing)
+│   ├── main.jsx               # Entry point (React Query provider)
 │   ├── components/
-│   │   └── shared/          # Toolbar, protected route wrapper
+│   │   └── shared/
+│   │       ├── toolBar.jsx        # Top navigation bar (language, theme, logout)
+│   │       └── protectedRoutes.jsx # Auth guard wrapper
 │   ├── config/
-│   │   ├── api.js           # Axios instance with auth interceptor
-│   │   ├── routes.jsx       # React Router configuration
-│   │   ├── theme.js         # MUI theme
-│   │   ├── themeConfig.jsx  # Theme + dark mode provider
-│   │   └── i18n/            # Translation files (EN, AR)
-│   ├── pages/               # Page components
-│   │   ├── factCheckPage    # Claim verification
-│   │   ├── statisticsPage   # Analytics dashboard
-│   │   ├── historyPage      # Verification history
-│   │   ├── loginPage        # Login
-│   │   └── registerPage     # Registration
-│   ├── repository/          # React Query hooks
-│   ├── services/            # API call functions
-│   └── utility/             # Helper functions
+│   │   ├── api.js             # Axios instance with JWT interceptor
+│   │   ├── routes.jsx         # React Router configuration (5 routes)
+│   │   ├── theme.js           # MUI theme (dark green + gold palette)
+│   │   ├── themeConfig.jsx    # Theme context provider (dark/light toggle)
+│   │   └── i18n/
+│   │       ├── index.js       # i18next setup
+│   │       └── languages/
+│   │           ├── ar/translation.json   # Arabic translations
+│   │           └── en/translations.json  # English translations
+│   ├── pages/
+│   │   ├── factCheckPage.jsx      # AI claim verification UI
+│   │   ├── statisticsPage.jsx     # Analytics dashboard (Recharts)
+│   │   ├── historyPage.jsx        # Paginated verification history
+│   │   ├── loginPage.jsx          # Login form
+│   │   └── registerPage.jsx       # Registration form
+│   ├── repository/                # React Query hooks (data layer)
+│   │   ├── factCheck.js           # useVerifyClaim, useStatistics, useHistory, useTopSources, useTrends
+│   │   └── user.js                # useRegister, useLogin
+│   └── services/                  # Axios request functions (API layer)
+│       ├── factCheck.js           # verifyClaimRequest, getStatsRequest, getHistoryRequest, etc.
+│       └── user.js                # register, login
 ├── package.json
-└── vite.config.js
+├── vite.config.js
+└── index.html
 ```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Architecture Summary
+
+The frontend follows a **3-layer architecture**:
+
+```
+Pages (UI) → Repository (React Query hooks) → Services (Axios calls) → Backend API
+```
+
+- **Services layer** (`services/`): Raw Axios HTTP calls to the backend REST API. Each function maps to one endpoint.
+- **Repository layer** (`repository/`): React Query hooks (`useQuery` / `useMutation`) that wrap services with caching, refetching, and invalidation logic.
+- **Pages layer** (`pages/`): React components that consume repository hooks and render the UI using MUI components.
+
+### Routes
+
+| Path           | Page              | Auth Required | Description                              |
+| -------------- | ----------------- | ------------- | ---------------------------------------- |
+| `/login`       | LoginPage         | No            | User login                               |
+| `/register`    | RegisterPage      | No            | User registration                        |
+| `/fact-check`  | FactCheckPage     | Yes           | Submit claims for AI verification        |
+| `/statistics`  | StatisticsPage    | Yes           | Analytics dashboard with charts          |
+| `/history`     | HistoryPage       | Yes           | Paginated, filterable verification log   |
+
+### Key Features
+
+- **AI Fact-Checking**: Submit any claim → AI returns verdict (True/False/Mixed), confidence score, analysis summary, and supporting/contradicting sources with similarity scores.
+- **Analytics Dashboard**: Donut chart (verdict distribution), radial gauge (confidence), area chart (trends over time with day/week/month toggle), horizontal bar chart (top sources), source stance pie chart, animated stat cards.
+- **Verification History**: Paginated table with filters by verdict, date range, and text search.
+- **Bilingual**: Full English/Arabic support with automatic RTL layout switching.
+- **Dark/Light Mode**: Theme toggle persisted in state.
+- **Auth**: JWT-based authentication with automatic token injection via Axios interceptor.

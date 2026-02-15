@@ -43,8 +43,6 @@ import {
   CalendarMonth,
   ViewWeek,
   DateRange,
-  ArrowUpward,
-  ArrowDownward,
   Refresh,
 } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
